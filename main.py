@@ -14,13 +14,19 @@ window.grid_rowconfigure(0, weight=1)
 window.grid_columnconfigure(0, weight=1)
 window.geometry("1312x720")
 
-set_window(window)
 
 table_background = resize("./table_background.jpg", 1312, 720)
 
 background_canvas = Canvas(window, width=1312, height=720)
 background_canvas.place(x=0, y=0, relwidth=1, relheight=1)
 background_canvas.create_image(0, 0, image=table_background, anchor="nw")
+background_text = background_canvas.create_text(625,
+                                                350,
+                                                text="BlackJack",
+                                                fill="white",
+                                                font=("helvetica", 16, "bold"))
+
+set_window(window, background_text, background_canvas)
 
 hit = Button(window, text="HIT",
              command=hand.hit,
@@ -76,4 +82,5 @@ reset = Button(window, text="RESET",
                 font=("courier", 10, "bold"))
 reset.place(x=1150, y=470)
 
+print(window)
 window.mainloop()

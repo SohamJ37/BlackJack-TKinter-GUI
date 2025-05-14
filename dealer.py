@@ -1,11 +1,15 @@
 from cards import shuffle_cards, create_shoe
 from tkinter import Canvas
 from images import resize
+# from main import background_text, background_canvas
+
 
 image_refs = []
 deck = create_shoe(1)
 shuffle_cards(deck)
 window = None
+background_text = None
+background_canvas = None
 face_down_card_canvas = None
 
 all_card_canvases = []
@@ -30,9 +34,11 @@ def remove_face_down_card():
         pass
 
 
-def set_window(w):
-    global window
+def set_window(w, bt, bc):
+    global window, background_text, background_canvas
     window = w
+    background_text = bt
+    background_canvas = bc
 
 
 def create_and_place_card(card, posx, posy):
@@ -122,6 +128,8 @@ class Hand:
         self.player_card_position_y = 500
         self.player_has_bust = False
         self.dealer_has_bust = False
+        # noinspection PyUnresolvedReferences
+        background_canvas.itemconfig(background_text, text="BlackJack")
 
     # noinspection PyUnresolvedReferences
     def stand(self):
@@ -133,23 +141,27 @@ class Hand:
                 while self.get_sum(self.dealer_cards) < 17:
                     dealer_card = self.draw_a_card()
                     self.dealer_cards.append(dealer_card)
-                    window.after(timer, lambda card=dealer_card, x=card_position, y=50: create_and_place_card(card, x, y))
+                    window.after(timer, lambda card=dealer_card,
+                                               x=card_position,
+                                               y=50: create_and_place_card(card, x, y))
                     card_position += 150
                     timer += 500
                 if self.get_sum(self.dealer_cards) > 21:
                     self.dealer_has_bust = True
             self.result()
+            self.game_is_on = False
 
+    # noinspection PyUnresolvedReferences
     def result(self):
         player_final_sum = self.get_sum(self.player_cards)
         dealer_final_sum = self.get_sum(self.dealer_cards)
         if self.player_has_bust:
-            print("DEALER WINS, PLAYER HAS BUST")
+            background_canvas.itemconfig(background_text, text="Dealer Wins, Player Has Bust")
         elif self.dealer_has_bust:
-            print("PLAYER WINS, DEALER HAS BUST")
+            background_canvas.itemconfig(background_text, text="Player Wins, Dealer Has Bust")
         elif player_final_sum > dealer_final_sum:
-            print("PLAYER WINS")
+            background_canvas.itemconfig(background_text, text="Player Wins")
         elif player_final_sum == dealer_final_sum:
-            print("PUSH")
+            background_canvas.itemconfig(background_text, text="Push")
         else:
-            print("DEALER WINS")
+            background_canvas.itemconfig(background_text, text="Dealer Wins")
