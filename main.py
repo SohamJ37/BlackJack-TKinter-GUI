@@ -59,12 +59,21 @@ deal = Button(window, text="DEAL",
 deal.place(x=1150, y=220)
 
 double = Button(window, text="DOUBLE",
-                command=hand.deal_hand,
+                command=hand.hit,
                 width=15,
                 height=2,
                 bg="green",
                 fg="white",
                 font=("courier", 10, "bold"))
 double.place(x=1150, y=420)
+
+reset = Button(window, text="RESET",
+                command=hand.reset_hand,
+                width=15,
+                height=2,
+                bg="green",
+                fg="white",
+                font=("courier", 10, "bold"))
+reset.place(x=1150, y=470)
 
 window.mainloop()

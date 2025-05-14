@@ -8,6 +8,8 @@ shuffle_cards(deck)
 window = None
 face_down_card_canvas = None
 
+all_card_canvases = []
+
 
 def place_face_down_card():
     global face_down_card_canvas
@@ -21,8 +23,11 @@ def place_face_down_card():
 # noinspection PyUnresolvedReferences
 def remove_face_down_card():
     global face_down_card_canvas
-    face_down_card_canvas.destroy()
-    face_down_card_canvas = None
+    try:
+        face_down_card_canvas.destroy()
+        face_down_card_canvas = None
+    except AttributeError:
+        pass
 
 
 def set_window(w):
@@ -36,6 +41,7 @@ def create_and_place_card(card, posx, posy):
     card_canvas = Canvas(width=125, height=182, bg="black")
     card_canvas.place(x=posx, y=posy)
     card_canvas.create_image(2, 2, image=card_image, anchor="nw")
+    all_card_canvases.append(card_canvas)
 
 
 class Hand:
@@ -98,13 +104,26 @@ class Hand:
             self.player_cards2 = [self.player_cards[1]]
 
     def reset_hand(self):
+        remove_face_down_card()
         self.player_cards.clear()
         self.dealer_cards.clear()
         self.player_cards1.clear()
         self.player_cards2.clear()
         self.cards_dealt = False
+        for card in all_card_canvases:
+            card.destroy()
+        self.player_card_position_x = 550
+        self.player_card_position_y = 500
 
     def stand(self):
+        card_position = 775
         remove_face_down_card()
+        while self.get_sum(self.dealer_cards) < 17:
+            dealer_card = self.draw_a_card()
+            self.dealer_cards.append(dealer_card)
+            create_and_place_card(dealer_card, card_position, 50)
+            card_position += 150
+
         print(self.get_sum(self.player_cards))
         print(self.get_sum(self.dealer_cards))
+
