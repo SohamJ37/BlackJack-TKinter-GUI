@@ -95,8 +95,8 @@ class Hand:
             self.player_card_position_y -= 50
 
     def double_down(self):
-        self.is_double = True
-        self.player_cards.append(self.draw_a_card())
+        self.hit()
+        self.stand()
 
     def split(self):
         if self.player_cards[0].number == self.player_cards[1].number:
@@ -115,15 +115,17 @@ class Hand:
         self.player_card_position_x = 550
         self.player_card_position_y = 500
 
+    # noinspection PyUnresolvedReferences
     def stand(self):
         card_position = 775
         remove_face_down_card()
+        timer = 200
         while self.get_sum(self.dealer_cards) < 17:
             dealer_card = self.draw_a_card()
             self.dealer_cards.append(dealer_card)
-            create_and_place_card(dealer_card, card_position, 50)
+            window.after(timer, lambda card=dealer_card, x=card_position, y=50: create_and_place_card(card, x, y))
             card_position += 150
+            timer += 200
 
         print(self.get_sum(self.player_cards))
         print(self.get_sum(self.dealer_cards))
-
