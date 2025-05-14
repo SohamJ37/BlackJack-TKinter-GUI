@@ -3,7 +3,7 @@ from images import resize
 from cards import create_shoe, shuffle_cards
 from dealer import Hand, set_window
 
-shoe = create_shoe(1)
+shoe = create_shoe(5)
 shuffle_cards(shoe)
 
 hand = Hand(shoe)

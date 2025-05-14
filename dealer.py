@@ -63,6 +63,7 @@ class Hand:
         self.player_card_position_y = 500
         self.player_has_bust = False
         self.dealer_has_bust = False
+        self.is_blackjack = False
 
     def draw_a_card(self):
         card_drawn = self.shoe[0]
@@ -86,6 +87,9 @@ class Hand:
             window.after(400 + (i * 400), lambda
                 card=dealer_card, x=475 + (i * 150), y=50: create_and_place_card(card, x, y))
         window.after(800, place_face_down_card)
+        if self.get_sum(self.player_cards) == 21 or self.get_sum(self.dealer_cards) == 21:
+            self.is_blackjack = True
+            self.stand()
 
     @staticmethod
     def get_sum(cards: list):
@@ -102,7 +106,9 @@ class Hand:
                 create_and_place_card(new_player_card, self.player_card_position_x, self.player_card_position_y)
                 self.player_card_position_x += 50
                 self.player_card_position_y -= 50
-                if self.get_sum(self.player_cards) > 21:
+                if self.get_sum(self.player_cards) == 21:
+                    self.stand()
+                elif self.get_sum(self.player_cards) > 21:
                     self.player_has_bust = True
                     self.stand()
 
@@ -128,6 +134,7 @@ class Hand:
         self.player_card_position_y = 500
         self.player_has_bust = False
         self.dealer_has_bust = False
+        self.is_blackjack = False
         # noinspection PyUnresolvedReferences
         background_canvas.itemconfig(background_text, text="BlackJack")
 
@@ -137,7 +144,7 @@ class Hand:
             card_position = 775
             remove_face_down_card()
             timer = 500
-            if not self.player_has_bust:
+            if not self.player_has_bust and not self.is_blackjack:
                 while self.get_sum(self.dealer_cards) < 17:
                     dealer_card = self.draw_a_card()
                     self.dealer_cards.append(dealer_card)
@@ -155,7 +162,14 @@ class Hand:
     def result(self):
         player_final_sum = self.get_sum(self.player_cards)
         dealer_final_sum = self.get_sum(self.dealer_cards)
-        if self.player_has_bust:
+        if self.is_blackjack:
+            if player_final_sum > dealer_final_sum:
+                background_canvas.itemconfig(background_text, text="Player Has BlackJack, Player Wins")
+            elif player_final_sum < dealer_final_sum:
+                background_canvas.itemconfig(background_text, text="Dealer Has BlackJack, Dealer Wins")
+            else:
+                background_canvas.itemconfig(background_text, text="Push")
+        elif self.player_has_bust:
             background_canvas.itemconfig(background_text, text="Dealer Wins, Player Has Bust")
         elif self.dealer_has_bust:
             background_canvas.itemconfig(background_text, text="Player Wins, Dealer Has Bust")
