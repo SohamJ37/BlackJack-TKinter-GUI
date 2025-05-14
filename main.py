@@ -59,7 +59,7 @@ deal = Button(window, text="DEAL",
 deal.place(x=1150, y=220)
 
 double = Button(window, text="DOUBLE",
-                command=hand.double_down(),
+                command=hand.double_down,
                 width=15,
                 height=2,
                 bg="green",

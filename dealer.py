@@ -119,13 +119,13 @@ class Hand:
     def stand(self):
         card_position = 775
         remove_face_down_card()
-        timer = 200
+        timer = 1000
         while self.get_sum(self.dealer_cards) < 17:
             dealer_card = self.draw_a_card()
             self.dealer_cards.append(dealer_card)
             window.after(timer, lambda card=dealer_card, x=card_position, y=50: create_and_place_card(card, x, y))
             card_position += 150
-            timer += 200
+            timer += 1000
 
         print(self.get_sum(self.player_cards))
         print(self.get_sum(self.dealer_cards))
