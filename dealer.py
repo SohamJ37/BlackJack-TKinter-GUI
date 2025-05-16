@@ -72,24 +72,26 @@ class Hand:
 
     # noinspection PyUnresolvedReferences
     def deal_hand(self):
-        self.reset_hand()
-        self.game_is_on = True
-        for i in range(2):
-            player_card = self.draw_a_card()
-            self.player_cards.append(player_card)
-            window.after(200 + (i * 400), lambda card=player_card,
-                                                 x=self.player_card_position_x,
-                                                 y=self.player_card_position_y: create_and_place_card(card, x, y))
-            self.player_card_position_x += 50
-            self.player_card_position_y -= 50
-            dealer_card = self.draw_a_card()
-            self.dealer_cards.append(dealer_card)
-            window.after(400 + (i * 400), lambda
-                card=dealer_card, x=475 + (i * 150), y=50: create_and_place_card(card, x, y))
-        window.after(800, place_face_down_card)
-        if self.get_sum(self.player_cards) == 21 or self.get_sum(self.dealer_cards) == 21:
-            self.is_blackjack = True
-            self.stand()
+        if not self.game_is_on:
+            self.reset_hand()
+            self.game_is_on = True
+            for i in range(2):
+                player_card = self.draw_a_card()
+                self.player_cards.append(player_card)
+                window.after(200 + (i * 400), lambda card=player_card,
+                                                     x=self.player_card_position_x,
+                                                     y=self.player_card_position_y: create_and_place_card(card, x, y))
+                self.player_card_position_x += 50
+                self.player_card_position_y -= 50
+                dealer_card = self.draw_a_card()
+                self.dealer_cards.append(dealer_card)
+                window.after(400 + (i * 400), lambda
+                    card=dealer_card, x=475 + (i * 150), y=50: create_and_place_card(card, x, y))
+            if self.get_sum(self.player_cards) == 21 or self.get_sum(self.dealer_cards) == 21:
+                self.is_blackjack = True
+                self.stand()
+            else:
+                window.after(800, place_face_down_card)
 
     @staticmethod
     def get_sum(cards: list):
@@ -130,6 +132,8 @@ class Hand:
         self.game_is_on = False
         for card in all_card_canvases:
             card.destroy()
+        all_card_canvases.clear()
+        image_refs.clear()
         self.player_card_position_x = 550
         self.player_card_position_y = 500
         self.player_has_bust = False
