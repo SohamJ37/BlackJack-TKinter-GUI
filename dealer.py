@@ -1,6 +1,7 @@
 from cards import shuffle_cards, create_shoe
 from tkinter import Canvas
 from images import resize
+
 # from main import background_text, background_canvas
 
 
@@ -11,6 +12,7 @@ window = None
 background_text = None
 background_canvas = None
 face_down_card_canvas = None
+score_text = None
 
 all_card_canvases = []
 
@@ -34,11 +36,12 @@ def remove_face_down_card():
         pass
 
 
-def set_window(w, bt, bc):
-    global window, background_text, background_canvas
+def set_window(w, bt, bc, st):
+    global window, background_text, background_canvas, score_text
     window = w
     background_text = bt
     background_canvas = bc
+    score_text = st
 
 
 def create_and_place_card(card, posx, posy):
@@ -55,6 +58,8 @@ class Hand:
         self.shoe = shoe
         self.player_cards = []
         self.dealer_cards = []
+        self.player_current_sum = 0
+        self.dealer_current_sum = 0
         self.is_double = False
         self.player_cards1 = []
         self.player_cards2 = []
@@ -64,6 +69,8 @@ class Hand:
         self.player_has_bust = False
         self.dealer_has_bust = False
         self.is_blackjack = False
+        self.player_ace_dealt_once = False
+        self.dealer_ace_dealt_once = False
 
     def draw_a_card(self):
         card_drawn = self.shoe[0]
@@ -92,6 +99,9 @@ class Hand:
                 self.stand()
             else:
                 window.after(800, place_face_down_card)
+            self.player_current_sum = self.get_sum(self.player_cards)
+            self.dealer_current_sum = self.get_sum(self.dealer_cards)
+            background_canvas.itemconfig(score_text, text=self.player_current_sum)
 
     @staticmethod
     def get_sum(cards: list):
@@ -100,17 +110,24 @@ class Hand:
             value_sum += card.value
         return value_sum
 
+    # noinspection PyUnresolvedReferences
     def hit(self):
         if self.game_is_on:
             if not self.player_has_bust:
                 new_player_card = self.draw_a_card()
                 self.player_cards.append(new_player_card)
+                self.player_current_sum += new_player_card.value
+                background_canvas.itemconfig(score_text, text=self.player_current_sum)
                 create_and_place_card(new_player_card, self.player_card_position_x, self.player_card_position_y)
                 self.player_card_position_x += 50
                 self.player_card_position_y -= 50
-                if self.get_sum(self.player_cards) == 21:
+                if self.player_current_sum == 21:
                     self.stand()
-                elif self.get_sum(self.player_cards) > 21:
+                elif self.ace_present("player") and self.player_current_sum > 21 and not self.player_ace_dealt_once:
+                    self.player_current_sum = self.get_sum(self.player_cards) - self.number_of_aces("player")*10
+                    background_canvas.itemconfig(score_text, text=self.player_current_sum)
+                    self.player_ace_dealt_once = True
+                elif self.player_current_sum > 21:
                     self.player_has_bust = True
                     self.stand()
 
@@ -139,37 +156,53 @@ class Hand:
         self.player_has_bust = False
         self.dealer_has_bust = False
         self.is_blackjack = False
+        self.player_ace_dealt_once = False
+        self.player_current_sum = 0
+        self.dealer_current_sum = 0
+        self.player_ace_dealt_once = False
+        self.dealer_ace_dealt_once = False
         # noinspection PyUnresolvedReferences
         background_canvas.itemconfig(background_text, text="BlackJack")
 
     # noinspection PyUnresolvedReferences
     def stand(self):
+        background_canvas.itemconfig(score_text,
+                                     text=f"{self.player_current_sum} vs {self.dealer_current_sum}")
         if self.game_is_on:
             card_position = 775
             remove_face_down_card()
             timer = 500
             if not self.player_has_bust and not self.is_blackjack:
-                while self.get_sum(self.dealer_cards) < 17:
+                while self.dealer_current_sum < 17:
                     dealer_card = self.draw_a_card()
                     self.dealer_cards.append(dealer_card)
+                    self.dealer_current_sum += dealer_card.value
                     window.after(timer, lambda card=dealer_card,
                                                x=card_position,
                                                y=50: create_and_place_card(card, x, y))
                     card_position += 150
                     timer += 500
-                if self.get_sum(self.dealer_cards) > 21:
+                    background_canvas.itemconfig(score_text,
+                                                 text=f"{self.player_current_sum} vs {self.dealer_current_sum}")
+                    if self.dealer_current_sum > 21 and not self.dealer_ace_dealt_once and self.ace_present("dealer"):
+                        self.dealer_current_sum = self.get_sum(self.dealer_cards) - 10*self.number_of_aces("dealer")
+                        background_canvas.itemconfig(score_text,
+                                                     text=f"{self.player_current_sum} vs {self.dealer_current_sum}")
+                        self.dealer_ace_dealt_once = True
+
+                if self.dealer_current_sum > 21:
                     self.dealer_has_bust = True
             self.result()
             self.game_is_on = False
 
     # noinspection PyUnresolvedReferences
     def result(self):
-        player_final_sum = self.get_sum(self.player_cards)
-        dealer_final_sum = self.get_sum(self.dealer_cards)
+        player_final_sum = self.player_current_sum
+        dealer_final_sum = self.dealer_current_sum
         if self.is_blackjack:
-            if player_final_sum > dealer_final_sum:
+            if self.get_sum(self.player_cards) > self.get_sum(self.dealer_cards):
                 background_canvas.itemconfig(background_text, text="Player Has BlackJack, Player Wins")
-            elif player_final_sum < dealer_final_sum:
+            elif self.get_sum(self.dealer_cards) > self.get_sum(self.player_cards):
                 background_canvas.itemconfig(background_text, text="Dealer Has BlackJack, Dealer Wins")
             else:
                 background_canvas.itemconfig(background_text, text="Push")
@@ -183,3 +216,25 @@ class Hand:
             background_canvas.itemconfig(background_text, text="Push")
         else:
             background_canvas.itemconfig(background_text, text="Dealer Wins")
+
+    def ace_present(self, subject="player"):
+        if subject == "dealer":
+            for card in self.dealer_cards:
+                if card.value == 11:
+                    return True
+        elif subject == "player":
+            for card in self.player_cards:
+                if card.value == 11:
+                    return True
+
+    def number_of_aces(self, subject="player"):
+        number_of_ace = 0
+        if subject == "dealer":
+            for card in self.dealer_cards:
+                if card.value == 11:
+                    number_of_ace += 1
+        elif subject == "player":
+            for card in self.player_cards:
+                if card.value == 11:
+                    number_of_ace += 1
+        return number_of_ace

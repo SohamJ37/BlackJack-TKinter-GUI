@@ -25,8 +25,8 @@ background_text = background_canvas.create_text(625,
                                                 text="BlackJack",
                                                 fill="white",
                                                 font=("helvetica", 16, "bold"))
-
-set_window(window, background_text, background_canvas)
+score_text = background_canvas.create_text(100, 100, text="Score", fill="white", font=("helvetica", 16, "bold"))
+set_window(window, background_text, background_canvas, score_text)
 
 hit = Button(window, text="HIT",
              command=hand.hit,
