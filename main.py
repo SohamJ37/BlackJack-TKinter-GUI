@@ -25,7 +25,8 @@ background_text = background_canvas.create_text(625,
                                                 fill="white",
                                                 font=("helvetica", 16, "bold"))
 score_text = background_canvas.create_text(100, 100, text="Score", fill="white", font=("helvetica", 16, "bold"))
-set_window(window, background_text, background_canvas, score_text)
+count_text = background_canvas.create_text(100, 600, text="", fill="white", font=("helvetica", 16, "bold"))
+set_window(window, background_text, background_canvas, score_text, count_text)
 
 bankroll = MoneyManager(1000, background_canvas, window)
 hand = Hand(shoe, bankroll)
@@ -49,14 +50,14 @@ stand = Button(window, text="STAND",
                font=("courier", 10, "bold"))
 stand.place(x=1150, y=320)
 
-set_bet = Button(window, text="BET",
-               command=lambda: bankroll.set_bet_amount(bet_amount.get()),
+show_count = Button(window, text="SHOW/HIDE COUNT",
+               command=hand.show_or_hide_count,
                width=15,
                height=2,
                bg="green",
                fg="white",
                font=("courier", 10, "bold"))
-set_bet.place(x=1150, y=370)
+show_count.place(x=1150, y=370)
 
 deal = Button(window, text="DEAL",
               command=lambda: (bankroll.set_bet_amount(bet_amount.get()), hand.deal_hand(), bankroll.update_bankroll()),

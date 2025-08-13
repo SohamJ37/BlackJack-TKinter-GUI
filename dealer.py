@@ -13,6 +13,7 @@ background_text = None
 background_canvas = None
 face_down_card_canvas = None
 score_text = None
+count_text = None
 
 all_card_canvases = []
 
@@ -36,12 +37,13 @@ def remove_face_down_card():
         pass
 
 
-def set_window(w, bt, bc, st):
-    global window, background_text, background_canvas, score_text
+def set_window(w, bt, bc, st, ct):
+    global window, background_text, background_canvas, score_text, count_text
     window = w
     background_text = bt
     background_canvas = bc
     score_text = st
+    count_text = ct
 
 
 def create_and_place_card(card, posx, posy):
@@ -56,6 +58,7 @@ def create_and_place_card(card, posx, posy):
 class Hand:
     def __init__(self, shoe: list, bankroll):
         self.shoe = shoe
+        self.count_visible = False
         self.player_cards = []
         self.dealer_cards = []
         self.player_current_sum = 0
@@ -72,10 +75,15 @@ class Hand:
         self.player_ace_dealt_once = False
         self.dealer_ace_dealt_once = False
         self.bankroll = bankroll
+        self.running_count = 0
 
     def draw_a_card(self):
         card_drawn = self.shoe[0]
         self.shoe.pop(0)
+        if card_drawn.number in [i + 2 for i in range(5)]:
+            self.running_count += 1
+        elif card_drawn.number in [10, 'A', 'K', 'Q', 'J']:
+            self.running_count -= 1
         return card_drawn
 
     # noinspection PyUnresolvedReferences
@@ -103,7 +111,6 @@ class Hand:
             self.player_current_sum = self.get_sum(self.player_cards)
             self.dealer_current_sum = self.get_sum(self.dealer_cards)
             background_canvas.itemconfig(score_text, text=self.player_current_sum)
-            # background_canvas.itemconfig(background_text, text="")
 
     @staticmethod
     def get_sum(cards: list):
@@ -126,7 +133,7 @@ class Hand:
                 if self.player_current_sum == 21:
                     self.stand()
                 elif self.ace_present("player") and self.player_current_sum > 21 and not self.player_ace_dealt_once:
-                    self.player_current_sum = self.get_sum(self.player_cards) - self.number_of_aces("player")*10
+                    self.player_current_sum = self.get_sum(self.player_cards) - self.number_of_aces("player") * 10
                     background_canvas.itemconfig(score_text, text=self.player_current_sum)
                     self.player_ace_dealt_once = True
                 elif self.player_current_sum > 21:
@@ -189,7 +196,7 @@ class Hand:
                     background_canvas.itemconfig(score_text,
                                                  text=f"{self.player_current_sum} vs {self.dealer_current_sum}")
                     if self.dealer_current_sum > 21 and not self.dealer_ace_dealt_once and self.ace_present("dealer"):
-                        self.dealer_current_sum = self.get_sum(self.dealer_cards) - 10*self.number_of_aces("dealer")
+                        self.dealer_current_sum = self.get_sum(self.dealer_cards) - 10 * self.number_of_aces("dealer")
                         background_canvas.itemconfig(score_text,
                                                      text=f"{self.player_current_sum} vs {self.dealer_current_sum}")
                         self.dealer_ace_dealt_once = True
@@ -250,3 +257,14 @@ class Hand:
                 if card.value == 11:
                     number_of_ace += 1
         return number_of_ace
+
+    def show_or_hide_count(self):
+        if not self.count_visible:
+            # noinspection PyUnresolvedReferences
+            background_canvas.itemconfig(count_text, text=f'Running Count: {self.running_count}\n'
+                                                          f'True Count: {round(self.running_count / round((len(self.shoe))/52))}')
+            self.count_visible = True
+        else:
+            # noinspection PyUnresolvedReferences
+            background_canvas.itemconfig(count_text, text="")
+            self.count_visible = False
