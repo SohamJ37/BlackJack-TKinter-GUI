@@ -21,7 +21,7 @@ def place_face_down_card():
     global face_down_card_canvas
     face_down_card_image = resize("./Face Down Card.jpeg", 125, 182)
     image_refs.append(face_down_card_image)
-    face_down_card_canvas = Canvas(width=125, height=182, bg="white")
+    face_down_card_canvas = Canvas(window, width=125, height=182, bg="white")
     face_down_card_canvas.place(x=625, y=50)
     face_down_card_canvas.create_image(2, 2, image=face_down_card_image, anchor="nw")
 
@@ -47,14 +47,14 @@ def set_window(w, bt, bc, st):
 def create_and_place_card(card, posx, posy):
     card_image = resize(card.image_path, 125, 182)
     image_refs.append(card_image)
-    card_canvas = Canvas(width=125, height=182, bg="black")
+    card_canvas = Canvas(window, width=125, height=182, bg="black")
     card_canvas.place(x=posx, y=posy)
     card_canvas.create_image(2, 2, image=card_image, anchor="nw")
     all_card_canvases.append(card_canvas)
 
 
 class Hand:
-    def __init__(self, shoe: list):
+    def __init__(self, shoe: list, bankroll):
         self.shoe = shoe
         self.player_cards = []
         self.dealer_cards = []
@@ -71,6 +71,7 @@ class Hand:
         self.is_blackjack = False
         self.player_ace_dealt_once = False
         self.dealer_ace_dealt_once = False
+        self.bankroll = bankroll
 
     def draw_a_card(self):
         card_drawn = self.shoe[0]
@@ -102,6 +103,7 @@ class Hand:
             self.player_current_sum = self.get_sum(self.player_cards)
             self.dealer_current_sum = self.get_sum(self.dealer_cards)
             background_canvas.itemconfig(score_text, text=self.player_current_sum)
+            # background_canvas.itemconfig(background_text, text="")
 
     @staticmethod
     def get_sum(cards: list):
@@ -162,7 +164,9 @@ class Hand:
         self.player_ace_dealt_once = False
         self.dealer_ace_dealt_once = False
         # noinspection PyUnresolvedReferences
-        background_canvas.itemconfig(background_text, text="BlackJack")
+        background_canvas.itemconfig(background_text, text="")
+        # noinspection PyUnresolvedReferences
+        background_canvas.itemconfig(score_text, text="")
 
     # noinspection PyUnresolvedReferences
     def stand(self):
@@ -201,20 +205,28 @@ class Hand:
         dealer_final_sum = self.dealer_current_sum
         if self.is_blackjack:
             if self.get_sum(self.player_cards) > self.get_sum(self.dealer_cards):
+                self.bankroll.blackjack()
                 background_canvas.itemconfig(background_text, text="Player Has BlackJack, Player Wins")
             elif self.get_sum(self.dealer_cards) > self.get_sum(self.player_cards):
+                self.bankroll.lose()
                 background_canvas.itemconfig(background_text, text="Dealer Has BlackJack, Dealer Wins")
             else:
+                self.bankroll.push()
                 background_canvas.itemconfig(background_text, text="Push")
         elif self.player_has_bust:
+            self.bankroll.lose()
             background_canvas.itemconfig(background_text, text="Dealer Wins, Player Has Bust")
         elif self.dealer_has_bust:
+            self.bankroll.win()
             background_canvas.itemconfig(background_text, text="Player Wins, Dealer Has Bust")
         elif player_final_sum > dealer_final_sum:
+            self.bankroll.win()
             background_canvas.itemconfig(background_text, text="Player Wins")
         elif player_final_sum == dealer_final_sum:
+            self.bankroll.push()
             background_canvas.itemconfig(background_text, text="Push")
         else:
+            self.bankroll.lose()
             background_canvas.itemconfig(background_text, text="Dealer Wins")
 
     def ace_present(self, subject="player"):

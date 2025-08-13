@@ -1,12 +1,11 @@
-from tkinter import Tk, Canvas, Button
+from tkinter import Tk, Canvas, Button, Scale
 from images import resize
 from cards import create_shoe, shuffle_cards
 from dealer import Hand, set_window
+from bankroll import MoneyManager
 
 shoe = create_shoe(5)
 shuffle_cards(shoe)
-
-hand = Hand(shoe)
 
 window = Tk()
 window.title("BlackJack")
@@ -28,6 +27,10 @@ background_text = background_canvas.create_text(625,
 score_text = background_canvas.create_text(100, 100, text="Score", fill="white", font=("helvetica", 16, "bold"))
 set_window(window, background_text, background_canvas, score_text)
 
+bankroll = MoneyManager(1000, background_canvas, window)
+hand = Hand(shoe, bankroll)
+
+
 hit = Button(window, text="HIT",
              command=hand.hit,
              width=15,
@@ -46,17 +49,17 @@ stand = Button(window, text="STAND",
                font=("courier", 10, "bold"))
 stand.place(x=1150, y=320)
 
-split = Button(window, text="SPLIT",
-               command=hand.split,
+set_bet = Button(window, text="BET",
+               command=lambda: bankroll.set_bet_amount(bet_amount.get()),
                width=15,
                height=2,
                bg="green",
                fg="white",
                font=("courier", 10, "bold"))
-split.place(x=1150, y=370)
+set_bet.place(x=1150, y=370)
 
 deal = Button(window, text="DEAL",
-              command=hand.deal_hand,
+              command=lambda: (bankroll.set_bet_amount(bet_amount.get()), hand.deal_hand(), bankroll.update_bankroll()),
               width=15,
               height=2,
               bg="green",
@@ -65,7 +68,7 @@ deal = Button(window, text="DEAL",
 deal.place(x=1150, y=220)
 
 double = Button(window, text="DOUBLE",
-                command=hand.double_down,
+                command=lambda: (bankroll.double_down(), hand.double_down()),
                 width=15,
                 height=2,
                 bg="green",
@@ -82,5 +85,17 @@ reset = Button(window, text="RESET",
                 font=("courier", 10, "bold"))
 reset.place(x=1150, y=470)
 
-print(window)
+bet_amount = Scale(window,
+                   orient="vertical",
+                   from_=0,
+                   to=bankroll.money_remaining,
+                   bg="green",
+                   fg="white",
+                   width=20,
+                   length=288,
+                   troughcolor="white",
+                   highlightcolor="black",
+                   font=("courier", 10, "bold"))
+bet_amount.place(x=1075, y=220)
+
 window.mainloop()
