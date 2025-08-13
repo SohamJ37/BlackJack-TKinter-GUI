@@ -4,7 +4,7 @@ from cards import create_shoe, shuffle_cards
 from dealer import Hand, set_window
 from bankroll import MoneyManager
 
-shoe = create_shoe(5)
+shoe = create_shoe(6)
 shuffle_cards(shoe)
 
 window = Tk()

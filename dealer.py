@@ -2,12 +2,7 @@ from cards import shuffle_cards, create_shoe
 from tkinter import Canvas
 from images import resize
 
-# from main import background_text, background_canvas
-
-
 image_refs = []
-deck = create_shoe(1)
-shuffle_cards(deck)
 window = None
 background_text = None
 background_canvas = None
@@ -236,6 +231,13 @@ class Hand:
             self.bankroll.lose()
             background_canvas.itemconfig(background_text, text="Dealer Wins")
 
+        if len(self.shoe) <= 60:
+            background_canvas.itemconfig(background_text, text="Resetting Shoe and Count.")
+            deck = create_shoe(6)
+            shuffled_deck = shuffle_cards(deck)
+            self.shoe = shuffled_deck
+            self.running_count = 0
+
     def ace_present(self, subject="player"):
         if subject == "dealer":
             for card in self.dealer_cards:
@@ -262,7 +264,7 @@ class Hand:
         if not self.count_visible:
             # noinspection PyUnresolvedReferences
             background_canvas.itemconfig(count_text, text=f'Running Count: {self.running_count}\n'
-                                                          f'True Count: {round(self.running_count / round((len(self.shoe))/52))}')
+                                                          f'True Count: {round(self.running_count / round((len(self.shoe)) / 52))}')
             self.count_visible = True
         else:
             # noinspection PyUnresolvedReferences
