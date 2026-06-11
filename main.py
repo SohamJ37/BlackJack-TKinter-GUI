@@ -32,6 +32,18 @@ bankroll = MoneyManager(1000, background_canvas, window)
 hand = Hand(shoe, bankroll)
 
 
+def click_deal():
+    if not hand.game_is_on:
+        bankroll.set_bet_amount(bet_amount.get())
+        bankroll.update_bankroll()
+        hand.deal_hand()
+
+def click_double():
+    if hand.game_is_on and len(hand.player_cards) == 2 and not hand.is_split:
+        bankroll.double_down()
+        hand.double_down()
+
+
 hit = Button(window, text="HIT",
              command=hand.hit,
              width=15,
@@ -60,7 +72,7 @@ show_count = Button(window, text="SHOW/HIDE COUNT",
 show_count.place(x=1150, y=370)
 
 deal = Button(window, text="DEAL",
-              command=lambda: (bankroll.set_bet_amount(bet_amount.get()), hand.deal_hand(), bankroll.update_bankroll()),
+              command=click_deal,
               width=15,
               height=2,
               bg="green",
@@ -69,7 +81,7 @@ deal = Button(window, text="DEAL",
 deal.place(x=1150, y=220)
 
 double = Button(window, text="DOUBLE",
-                command=lambda: (bankroll.double_down(), hand.double_down()),
+                command=click_double,
                 width=15,
                 height=2,
                 bg="green",
@@ -86,6 +98,15 @@ reset = Button(window, text="RESET",
                 font=("courier", 10, "bold"))
 reset.place(x=1150, y=470)
 
+split_btn = Button(window, text="SPLIT",
+                command=hand.split,
+                width=15,
+                height=2,
+                bg="green",
+                fg="white",
+                font=("courier", 10, "bold"))
+split_btn.place(x=1150, y=520)
+
 bet_amount = Scale(window,
                    orient="vertical",
                    from_=0,
@@ -93,7 +114,7 @@ bet_amount = Scale(window,
                    bg="green",
                    fg="white",
                    width=20,
-                   length=288,
+                   length=335,
                    troughcolor="white",
                    highlightcolor="black",
                    font=("courier", 10, "bold"))

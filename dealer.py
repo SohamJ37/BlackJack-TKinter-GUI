@@ -67,10 +67,14 @@ class Hand:
         self.player_has_bust = False
         self.dealer_has_bust = False
         self.is_blackjack = False
-        self.player_ace_dealt_once = False
-        self.dealer_ace_dealt_once = False
         self.bankroll = bankroll
         self.running_count = 0
+
+        self.is_split = False
+        self.active_hand_index = 0
+        self.split_hands = []
+        self.split_busts = [False, False] 
+        self.split_x_positions = [350, 800]
 
     def draw_a_card(self):
         card_drawn = self.shoe[0]
@@ -110,61 +114,114 @@ class Hand:
     @staticmethod
     def get_sum(cards: list):
         value_sum = 0
+        aces = 0
+
         for card in cards:
+            if card.value == 11:
+                aces += 1
             value_sum += card.value
+
+        while value_sum > 21 and aces > 0:
+            value_sum -= 10
+            aces -= 1
+
         return value_sum
 
     # noinspection PyUnresolvedReferences
     def hit(self):
         if self.game_is_on:
-            if not self.player_has_bust:
-                new_player_card = self.draw_a_card()
-                self.player_cards.append(new_player_card)
-                self.player_current_sum += new_player_card.value
-                background_canvas.itemconfig(score_text, text=self.player_current_sum)
-                create_and_place_card(new_player_card, self.player_card_position_x, self.player_card_position_y)
+            target_hand = self.split_hands[self.active_hand_index] if self.is_split else self.player_cards
+            has_bust = self.split_busts[self.active_hand_index] if self.is_split else self.player_has_bust
+            
+            if not has_bust:
+                new_card = self.draw_a_card()
+                target_hand.append(new_card)
+                current_sum = self.get_sum(target_hand)
+                
+                prefix = f"Hand {self.active_hand_index + 1}: " if self.is_split else ""
+                background_canvas.itemconfig(score_text, text=f"{prefix}{current_sum}")
+                
+                create_and_place_card(new_card, self.player_card_position_x, self.player_card_position_y)
                 self.player_card_position_x += 50
                 self.player_card_position_y -= 50
-                if self.player_current_sum == 21:
+                
+                if current_sum > 21:
+                    if self.is_split:
+                        self.split_busts[self.active_hand_index] = True
+                    else:
+                        self.player_has_bust = True
                     self.stand()
-                elif self.ace_present("player") and self.player_current_sum > 21 and not self.player_ace_dealt_once:
-                    self.player_current_sum = self.get_sum(self.player_cards) - self.number_of_aces("player") * 10
-                    background_canvas.itemconfig(score_text, text=self.player_current_sum)
-                    self.player_ace_dealt_once = True
-                elif self.player_current_sum > 21:
-                    self.player_has_bust = True
+                elif current_sum == 21:
                     self.stand()
 
     def double_down(self):
         self.hit()
         self.stand()
 
+# noinspection PyUnresolvedReferences
     def split(self):
-        if self.player_cards[0].number == self.player_cards[1].number:
-            self.player_cards1 = [self.player_cards[0]]
-            self.player_cards2 = [self.player_cards[1]]
+        if self.game_is_on and len(self.player_cards) == 2 and self.player_cards[0].value == self.player_cards[1].value and not self.is_split:
+            
+            self.is_split = True
+            self.active_hand_index = 0
+            
+            self.bankroll.money_remaining -= self.bankroll.current_bet
+            self.bankroll.update_bankroll()
+            
+            self.split_hands = [[self.player_cards[0]], [self.player_cards[1]]]
+            
+            for canvas in all_card_canvases:
+                canvas.destroy()
+            all_card_canvases.clear()
+            
+            # --- THE VISUAL FIX: Redraw BOTH dealer cards and replace cover ---
+            remove_face_down_card()
+            create_and_place_card(self.dealer_cards[0], 475, 50)
+            create_and_place_card(self.dealer_cards[1], 625, 50) # The invisible hole card
+            place_face_down_card()
+            
+            create_and_place_card(self.split_hands[0][0], self.split_x_positions[0], 500)
+            create_and_place_card(self.split_hands[1][0], self.split_x_positions[1], 500)
+            
+            new_card_1 = self.draw_a_card()
+            new_card_2 = self.draw_a_card()
+            self.split_hands[0].append(new_card_1)
+            self.split_hands[1].append(new_card_2)
+            
+            create_and_place_card(new_card_1, self.split_x_positions[0] + 50, 450)
+            create_and_place_card(new_card_2, self.split_x_positions[1] + 50, 450)
+            
+            self.player_card_position_x = self.split_x_positions[0] + 100
+            self.player_card_position_y = 400
+            
+            current_sum = self.get_sum(self.split_hands[self.active_hand_index])
+            background_canvas.itemconfig(score_text, text=f"Hand 1: {current_sum}")
 
     def reset_hand(self):
         remove_face_down_card()
         self.player_cards.clear()
         self.dealer_cards.clear()
-        self.player_cards1.clear()
-        self.player_cards2.clear()
+        
+        # --- THE STATE FIX: Reset all split tracking variables ---
+        self.is_split = False
+        self.active_hand_index = 0
+        self.split_hands.clear()
+        self.split_busts = [False, False]
+        
         self.game_is_on = False
+        
         for card in all_card_canvases:
             card.destroy()
         all_card_canvases.clear()
         image_refs.clear()
+        
         self.player_card_position_x = 550
         self.player_card_position_y = 500
         self.player_has_bust = False
         self.dealer_has_bust = False
         self.is_blackjack = False
-        self.player_ace_dealt_once = False
         self.player_current_sum = 0
-        self.dealer_current_sum = 0
-        self.player_ace_dealt_once = False
-        self.dealer_ace_dealt_once = False
+        
         # noinspection PyUnresolvedReferences
         background_canvas.itemconfig(background_text, text="")
         # noinspection PyUnresolvedReferences
@@ -172,70 +229,91 @@ class Hand:
 
     # noinspection PyUnresolvedReferences
     def stand(self):
-        background_canvas.itemconfig(score_text,
-                                     text=f"{self.player_current_sum} vs {self.dealer_current_sum}")
         if self.game_is_on:
-            card_position = 775
+            if self.is_split and self.active_hand_index == 0:
+                self.active_hand_index = 1
+                self.player_card_position_x = self.split_x_positions[1] + 100
+                self.player_card_position_y = 400
+                
+                current_sum = self.get_sum(self.split_hands[1])
+                background_canvas.itemconfig(score_text, text=f"Hand 2: {current_sum}")
+                return
+                
             remove_face_down_card()
+            card_position = 775
             timer = 500
-            if not self.player_has_bust and not self.is_blackjack:
-                while self.dealer_current_sum < 17:
+            
+            player_all_busted = (self.is_split and all(self.split_busts)) or (not self.is_split and self.player_has_bust)
+            
+            if not player_all_busted and not self.is_blackjack:
+                while self.get_sum(self.dealer_cards) < 17:
                     dealer_card = self.draw_a_card()
                     self.dealer_cards.append(dealer_card)
-                    self.dealer_current_sum += dealer_card.value
-                    window.after(timer, lambda card=dealer_card,
-                                               x=card_position,
-                                               y=50: create_and_place_card(card, x, y))
+                    
+                    window.after(timer, lambda card=dealer_card, x=card_position, y=50: create_and_place_card(card, x, y))
                     card_position += 150
                     timer += 500
-                    background_canvas.itemconfig(score_text,
-                                                 text=f"{self.player_current_sum} vs {self.dealer_current_sum}")
-                    if self.dealer_current_sum > 21 and not self.dealer_ace_dealt_once and self.ace_present("dealer"):
-                        self.dealer_current_sum = self.get_sum(self.dealer_cards) - 10 * self.number_of_aces("dealer")
-                        background_canvas.itemconfig(score_text,
-                                                     text=f"{self.player_current_sum} vs {self.dealer_current_sum}")
-                        self.dealer_ace_dealt_once = True
 
-                if self.dealer_current_sum > 21:
-                    self.dealer_has_bust = True
-            self.result()
+            window.after(timer, self.result)
             self.game_is_on = False
 
     # noinspection PyUnresolvedReferences
     def result(self):
-        player_final_sum = self.player_current_sum
-        dealer_final_sum = self.dealer_current_sum
-        if self.is_blackjack:
-            if self.get_sum(self.player_cards) > self.get_sum(self.dealer_cards):
-                self.bankroll.blackjack()
-                background_canvas.itemconfig(background_text, text="Player Has BlackJack, Player Wins")
-            elif self.get_sum(self.dealer_cards) > self.get_sum(self.player_cards):
-                self.bankroll.lose()
-                background_canvas.itemconfig(background_text, text="Dealer Has BlackJack, Dealer Wins")
-            else:
+        dealer_final_sum = self.get_sum(self.dealer_cards)
+        self.dealer_has_bust = dealer_final_sum > 21
+        
+        hands_to_evaluate = self.split_hands if self.is_split else [self.player_cards]
+        busts_to_evaluate = self.split_busts if self.is_split else [self.player_has_bust]
+        
+        result_texts = []
+        original_bet = self.bankroll.current_bet
+
+        for i, hand in enumerate(hands_to_evaluate):
+            self.bankroll.current_bet = original_bet
+            
+            player_sum = self.get_sum(hand)
+            prefix = f"Hand {i + 1}: " if self.is_split else ""
+            
+            # --- Explicit Blackjack Checks ---
+            player_has_bj = (player_sum == 21 and len(hand) == 2 and not self.is_split)
+            dealer_has_bj = (dealer_final_sum == 21 and len(self.dealer_cards) == 2)
+            
+            if player_has_bj and dealer_has_bj:
                 self.bankroll.push()
-                background_canvas.itemconfig(background_text, text="Push")
-        elif self.player_has_bust:
-            self.bankroll.lose()
-            background_canvas.itemconfig(background_text, text="Dealer Wins, Player Has Bust")
-        elif self.dealer_has_bust:
-            self.bankroll.win()
-            background_canvas.itemconfig(background_text, text="Player Wins, Dealer Has Bust")
-        elif player_final_sum > dealer_final_sum:
-            self.bankroll.win()
-            background_canvas.itemconfig(background_text, text="Player Wins")
-        elif player_final_sum == dealer_final_sum:
-            self.bankroll.push()
-            background_canvas.itemconfig(background_text, text="Push")
-        else:
-            self.bankroll.lose()
-            background_canvas.itemconfig(background_text, text="Dealer Wins")
+                result_texts.append("Push (Both Blackjack)")
+            elif player_has_bj:
+                self.bankroll.blackjack()
+                result_texts.append("Blackjack! Player Wins")
+            elif dealer_has_bj:
+                self.bankroll.lose()
+                result_texts.append(f"{prefix}Loss (Dealer Blackjack)")
+            elif busts_to_evaluate[i]:
+                self.bankroll.lose()
+                result_texts.append(f"{prefix}Bust")
+            elif self.dealer_has_bust:
+                self.bankroll.win()
+                result_texts.append(f"{prefix}Win (Dealer Bust)")
+            elif player_sum > dealer_final_sum:
+                self.bankroll.win()
+                result_texts.append(f"{prefix}Win")
+            elif player_sum == dealer_final_sum:
+                self.bankroll.push()
+                result_texts.append(f"{prefix}Push")
+            else:
+                self.bankroll.lose()
+                result_texts.append(f"{prefix}Loss")
+
+        self.bankroll.current_bet = 0
+        self.bankroll.update_bankroll()
+
+        final_text = " | ".join(result_texts)
+        background_canvas.itemconfig(background_text, text=final_text)
+        background_canvas.itemconfig(score_text, text=f"Dealer Total: {dealer_final_sum}")
 
         if len(self.shoe) <= 60:
-            background_canvas.itemconfig(background_text, text="Resetting Shoe and Count.")
-            deck = create_shoe(6)
-            shuffled_deck = shuffle_cards(deck)
-            self.shoe = shuffled_deck
+            window.after(2000, lambda: background_canvas.itemconfig(background_text, text="Resetting Shoe and Count..."))
+            from cards import create_shoe, shuffle_cards
+            self.shoe = shuffle_cards(create_shoe(6))
             self.running_count = 0
 
     def ace_present(self, subject="player"):
